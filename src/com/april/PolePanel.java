@@ -6,7 +6,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
 public class PolePanel extends JPanel {
     private Timer tmDraw;
@@ -83,34 +82,27 @@ public class PolePanel extends JPanel {
 
         this.game = new Game();
         try {
-            this.fon = ImageIO.read(new File("c:\\fon.jpg"));
+            this.fon = ImageIO.read(new File("./koloda/fon.jpg"));
         } catch (IOException e) {
             System.out.println("Картинка не читается");
         }
-
+        setLayout(null);
         this.btn1 = new JButton();
         this.btn1.setText("Новая игра");
         this.btn1.setForeground(Color.BLUE);
         this.btn1.setFont(new Font("serif", Font.PLAIN, 20));
         this.btn1.setBounds(820, 50, 150, 50);
-        this.btn1.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                game.start();
-            }
-        });
+        this.btn1.addActionListener(e -> game.start());
+        add(this.btn1);
 
         this.btn2 = new JButton();
         this.btn2.setText("Выход");
         this.btn2.setForeground(Color.RED);
         this.btn2.setFont(new Font("serif", Font.PLAIN, 20));
         this.btn2.setBounds(820, 150, 150, 50);
-        this.btn2.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.exit(0);
-            }
-        });
+        this.btn2.addActionListener(e -> System.exit(0));
+        add(this.btn2);
+
         //now
         this.tmDraw = new Timer(20, (event) -> repaint());
         // was
@@ -120,21 +112,23 @@ public class PolePanel extends JPanel {
 //                repaint();
 //            }
 //        });
-
-
         this.tmDraw.start();
     }
 
     public void paintComponent(Graphics gr) {
         super.paintComponent(gr);
-        gr.drawImage(this.fon, 0, 0, 1000, 700, null);
+
+        gr.drawImage(this.fon, 0, 0, 1000,700, null);
+
         gr.setColor(Color.WHITE);
         for (int i = 0; i < 7; i++) {
-            gr.drawRect(30 + i * 110, 130, 72, 97);
+            if (i != 2) {
+                gr.drawRect(30 + i * 110, 15, 72, 97);
+            }
         }
 
         for (int i = 0; i < 7; i++) {
-            gr.drawRect(30 + i * 130, 130, 72, 97);
+            gr.drawRect(30 + i * 110, 130, 72, 97);
         }
 
         game.drawKoloda(gr);

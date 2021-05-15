@@ -6,10 +6,11 @@ import java.io.File;
 import java.io.IOException;
 
 public class Karta {
-    public int x, y;
+    private int x;
+    private int y;
     public Image img;
     public Image rubashkaImg;
-    public boolean rubashkaType;
+    private boolean rubashkaType;
     public byte mast; // 0 - крести, 1 - пики, 2 - черви, 3 - буби
     public int type; // 12 - туз, 11 - король, 10 - дама, 9 валет, 8 - десятка, 7 - девятка... 0 - двойка
     public boolean isSelected;
@@ -21,7 +22,7 @@ public class Karta {
         this.isSelected = false;
         this.rubashkaImg = rubashkaImg;
         try {
-            img = ImageIO.read(new File(path));
+            this.img = ImageIO.read(new File(path));
         } catch (IOException e) {
             System.out.println("Не могу прочесть изображение");
             System.exit(-1);
@@ -34,6 +35,32 @@ public class Karta {
         this.type = (cardNumber - 1) / 4;
 
         this.isRed = this.mast > 1;
+    }
+
+    public void setRubashkaType(boolean rubashkaType) {
+        this.rubashkaType = rubashkaType;
+    }
+
+    public int getX() {
+        return x;
+    }
+
+    public void setX(int x) {
+        this.x = x;
+    }
+
+    public void increaseOn(int x) {
+        if (this.x + x >= 0 && this.x + x <= 1000) {
+            this.x += x;
+        }
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public void setY(int y) {
+        this.y = y;
     }
 
     public void draw(Graphics gr) {
