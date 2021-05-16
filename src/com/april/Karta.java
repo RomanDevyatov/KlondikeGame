@@ -10,6 +10,59 @@ public class Karta {
     private int y;
     public Image img;
     public Image rubashkaImg;
+
+    public Image getImg() {
+        return img;
+    }
+
+    public void setImg(Image img) {
+        this.img = img;
+    }
+
+    public Image getRubashkaImg() {
+        return rubashkaImg;
+    }
+
+    public void setRubashkaImg(Image rubashkaImg) {
+        this.rubashkaImg = rubashkaImg;
+    }
+
+    public boolean isRubashkaType() {
+        return rubashkaType;
+    }
+
+    public byte getMast() {
+        return mast;
+    }
+
+    public void setMast(byte mast) {
+        this.mast = mast;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public boolean isSelected() {
+        return isSelected;
+    }
+
+    public void setSelected(boolean selected) {
+        isSelected = selected;
+    }
+
+    public boolean isRed() {
+        return isRed;
+    }
+
+    public void setRed(boolean red) {
+        isRed = red;
+    }
+
     private boolean rubashkaType;
     public byte mast; // 0 - крести, 1 - пики, 2 - черви, 3 - буби
     public int type; // 12 - туз, 11 - король, 10 - дама, 9 валет, 8 - десятка, 7 - девятка... 0 - двойка
