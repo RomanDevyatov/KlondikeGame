@@ -3,8 +3,6 @@ package com.april;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 
 public class Game {
@@ -33,7 +31,7 @@ public class Game {
         for (int i = 0; i < 13; i++) {
             stopkas[i] = new Stopka();
         }
-
+        // в конце игры эффект
         tmEndGame = new Timer(100, e -> {
             for(int i = 2; i <= 5; i++) {
                 Karta karta = stopkas[i].get(0);
@@ -70,8 +68,6 @@ public class Game {
                 stopkas[nomStopki].get(i).setY(karta.getY() + y);
                 y += 20;
             }
-
-
         }
     }
 
@@ -83,12 +79,27 @@ public class Game {
     public void mouseReleased(int mX, int mY) {
         int nom = getNomKolodaPress(mX, mY);
 
-
-        // здесь остановились
-
-        if (nom == 0) {
-            vidacha();
+        if (nomStopki != -1) {
+            stopkas[nomStopki].get(nomKarti).setSelected(false);
+            if (nom == -1 || !testPerenos(nomStopki, nom)) {
+                int y = 0;
+                for (int i = nomKarti; i < stopkas[nomStopki].size(); i++) {
+                    Karta karta = stopkas[nomStopki].get(i);
+                    karta.setX(oldX);
+                    karta.setY(oldY);
+                    y += 20;
+                }
+            }
+            nomStopki = -1;
+            nomKarti = -1;
+            openKarta();
+        } else {
+            if (nom == 0) {
+                vidacha();
+            }
         }
+
+
     }
 
     public void mouseDoublePressed(int mX, int mY) {
@@ -96,7 +107,7 @@ public class Game {
         if (number == 1 || (number >= 6 && number <= 12)) {
             if (stopkas[number].size() > 0) {
                 int lastCardNumber = stopkas[number].size() - 1;
-                Karta lastCard = stopkas[nomStopki].get(lastCardNumber);
+                Karta lastCard = stopkas[number].get(lastCardNumber);
                 if (mY >=lastCard.getY() && mY <= lastCard.getY() + 97) {
                     for (int i = 2; i < 5; i++) {
                         int res = -1;
@@ -135,6 +146,8 @@ public class Game {
         openKarta();
     }
 
+    // number - стопка из которой переносят
+    // numberAnother - стопка в которую переносят
     private boolean testPerenos(int number, int numberAnother) {
         boolean res = false;
         Karta karta = stopkas[number].get(nomKarti);
@@ -142,8 +155,8 @@ public class Game {
         if (stopkas[numberAnother].size() > 0) {
             anotherKarta = stopkas[numberAnother].get(stopkas[numberAnother].size() - 1);
         }
-        if (numberAnother >= 2 && number <= 5) {
-            if (nomKarti == stopkas[number].size() - 1) {
+        if (numberAnother >= 2 && numberAnother <= 5) {
+            if (nomKarti == (stopkas[number].size() - 1)) {
                 if (anotherKarta == null) {
                     if (karta.getType() == 12) {
                         res = true;
@@ -154,7 +167,7 @@ public class Game {
                     res = true;
                 } else if (anotherKarta.getType() >= 0
                         && karta.getMast() == anotherKarta.getMast()
-                        && anotherKarta.getType() <= 11) {
+                        && anotherKarta.getType() < 11) {
                     if (karta.getType() == anotherKarta.getType() + 1) {
                         res = true;
                     }
@@ -175,7 +188,7 @@ public class Game {
             int y = 130;
 
             if (anotherKarta == null) {
-                if (karta.getType() == 11) {
+                if (karta.getType() == 11) { // короля можно перенести в пустую стопку
                     res = true;
                 }
             } else {
@@ -193,14 +206,14 @@ public class Game {
             }
 
             if (res) {
-                for (int i = nomKarti; i< stopkas[number].size(); i++) {
+                for (int i = nomKarti; i < stopkas[number].size(); i++) {
                     Karta karta_ = stopkas[number].get(i);
                     karta_.setX(x);
                     karta_.setY(y);
                     stopkas[numberAnother].add(karta_);
-                    y+=20;
+                    y += 20;
                 }
-                for (int i = stopkas[number].size() - 1; i > nomKarti; i--) {
+                for (int i = stopkas[number].size() - 1; i >= nomKarti; i--) {
                     stopkas[number].remove(i);
                 }
             }
@@ -338,7 +351,7 @@ public class Game {
     }
 
     private void load() { // загружает изображения колоды
-        for (int i = 0; i <= 52; i++) {
+        for (int i = 1; i <= 52; i++) {
             stopkas[0].add(new Karta(KARTA_IMAGES_FOLDER_PATH + "/" + "k" + i + ".png", rubashkaImage, i));
         }
 
