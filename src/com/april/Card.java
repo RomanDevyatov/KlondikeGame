@@ -106,9 +106,9 @@ public class Card {
         this.x = x;
     }
 
-    public void increaseOn(int x) {
-        if (this.x + x >= 0 && this.x + x <= GameParameters.FRAME_WIDTH) {
-            this.x += x;
+    public void increaseOn(int delta) {
+        if (this.x + delta >= 0 && this.x + delta <= GameParameters.FRAME_WIDTH) {
+            this.x += delta;
         }
     }
 

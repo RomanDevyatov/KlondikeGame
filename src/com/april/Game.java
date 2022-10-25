@@ -11,7 +11,7 @@ import java.io.File;
 
 public class Game {
     public Image shirtImage;
-    private Stack[] stacks;
+    private final Stack[] stacks;
     private boolean isFirstCardsIssue;
     public boolean isEndGame;
 
@@ -25,7 +25,7 @@ public class Game {
         try {
             shirtImage = ImageIO.read(new File(GameParameters.PATH_TO_CARD_K0));
         } catch (Exception e) {
-            System.out.println("Couldn't open PATH_TO_KARTA_K0:" + e.getMessage());
+            System.out.println("Couldn't open PATH_TO_CARD_K0:" + e.getMessage());
         }
         stacks = new Stack[GameParameters.STACK_NUMBER];
 
@@ -34,7 +34,7 @@ public class Game {
         }
 
         timerEndGame = new Timer(GameParameters.ENDGAME_TIMER_DELAY, e -> {
-            for(int stackIndex = 2; stackIndex <= 5; stackIndex++) {
+            for (int stackIndex = 2; stackIndex <= 5; stackIndex++) {
                 Card card = stacks[stackIndex].get(0);
                 stacks[stackIndex].add(card);
                 stacks[stackIndex].remove(0);
@@ -44,11 +44,11 @@ public class Game {
         start();
     }
 
-    public void mouseDragged(int mX, int mY) {
+    public void mouseDragged(int xMouse, int yMouse) {
         if (stackNumber >= 0) {
             Card card = stacks[stackNumber].get(cardNumber);
-            card.setX(mX - dX);
-            card.setY(mY - dY);
+            card.setX(xMouse - dX);
+            card.setY(yMouse - dY);
 
             if (card.getX() < 0) {
                 card.setX(0);
@@ -62,10 +62,12 @@ public class Game {
             if (card.getY() > 650) {
                 card.setY(650);
             }
-
-            for (int i = cardNumber + 1; i < stacks[stackNumber].size(); i++) {
-                stacks[stackNumber].get(i).setX(card.getX());
-                stacks[stackNumber].get(i).setY(card.getY() + GameParameters.CARD_DISTANT * (i + 1));
+            int newY = 20;
+            for (int cardIndex = cardNumber + 1; cardIndex < stacks[stackNumber].size(); cardIndex++) {
+                Card currentCard = stacks[stackNumber].get(cardIndex);
+                currentCard.setX(card.getX());
+                currentCard.setY(card.getY() + newY);
+                newY += GameParameters.CARD_DISTANT;
             }
         }
     }
@@ -76,53 +78,55 @@ public class Game {
     }
 
     public void mouseReleased(int mX, int mY) {
-        int deckNumberPressed = getStackNumberPressed(mX, mY);
+        int stackNumberPressed = getStackNumberPressed(mX, mY);
 
         if (stackNumber != -1) {
             stacks[stackNumber].get(cardNumber).setSelected(false);
-            if (deckNumberPressed == -1 || !isMoved(stackNumber, deckNumberPressed)) {
-                for (int i = cardNumber; i < stacks[stackNumber].size(); i++) {
-                    Card card = stacks[stackNumber].get(i);
+
+            if (stackNumberPressed == -1 || !isMoved(stackNumber, stackNumberPressed)) {
+                int newY = 0;
+                for (int cardIndex = cardNumber; cardIndex < stacks[stackNumber].size(); cardIndex++) {
+                    Card card = stacks[stackNumber].get(cardIndex);
                     card.setX(oldX);
-                    card.setY(oldY);
+                    card.setY(oldY + newY);
+                    newY += GameParameters.CARD_DISTANT;
                 }
             }
             stackNumber = -1;
             cardNumber = -1;
             openCard();
         } else {
-            if (deckNumberPressed == 0) {
+            if (stackNumberPressed == 0) {
                 issuance();
             }
         }
-
     }
 
     public void mouseDoublePressed(int xMouse, int yMouse) {
-        int stackNumber = getStackNumberPressed(xMouse, yMouse);
-        if (stackNumber == 1 || (stackNumber >= 6 && stackNumber <= 12)) {
-            if (stacks[stackNumber].size() > 0) {
-                int lastCardNumber = stacks[stackNumber].size() - 1;
-                Card lastCard = stacks[stackNumber].get(lastCardNumber);
+        int stackNumberPressed = getStackNumberPressed(xMouse, yMouse);
+        if (stackNumberPressed == 1 || (stackNumberPressed >= 6 && stackNumberPressed < GameParameters.STACK_NUMBER)) {
+            if (stacks[stackNumberPressed].size() > 0) {
+                int lastCardNumber = stacks[stackNumberPressed].size() - 1;
+                Card lastCard = stacks[stackNumberPressed].get(lastCardNumber);
                 if (yMouse >=lastCard.getY() && yMouse <= lastCard.getY() + GameParameters.CARD_HEIGHT) {
-                    for (int i = 2; i < 5; i++) {
+                    for (int homeStackIndex = 2; homeStackIndex < 5; homeStackIndex++) {
                         int result = -1;
-                        if (stacks[i].size() == 0) {
+                        if (stacks[homeStackIndex].size() == 0) {
                             if (lastCard.getRank() == CardParameters.ACE_RANK) {
-                                result = i;
+                                result = homeStackIndex;
                             }
                         } else {
-                            int homeLastCardNumber = stacks[i].size() - 1;
-                            Card homeLastCard = stacks[i].get(homeLastCardNumber);
-                            if (homeLastCard.getRank() == 12
+                            int homeLastCardNumber = stacks[homeStackIndex].size() - 1;
+                            Card homeLastCard = stacks[homeStackIndex].get(homeLastCardNumber);
+                            if (homeLastCard.getRank() == CardParameters.ACE_RANK
                                     && homeLastCard.getSuit() == lastCard.getSuit()
                                     && lastCard.getRank() == 0) {
-                                result = i;
+                                result = homeStackIndex;
                             } else if (homeLastCard.getRank() >= CardParameters.TWO_RANK
                                         && homeLastCard.getRank() < CardParameters.KING_RANK
                                         && homeLastCard.getSuit() == lastCard.getSuit()) {
                                 if (homeLastCard.getRank() + 1 == lastCard.getRank()) {
-                                    result = i;
+                                    result = homeStackIndex;
                                 }
                             }
                         }
@@ -131,7 +135,7 @@ public class Game {
                             lastCard.setX(GameParameters.X_SHIFT * (result + 1) + GameParameters.X_START);
                             lastCard.setY(GameParameters.Y_TOP_ROW_START);
                             stacks[result].add(lastCard);
-                            stacks[stackNumber].remove(lastCardNumber);
+                            stacks[stackNumberPressed].remove(lastCardNumber);
                             checkEndGame();
                             break;
                         }
@@ -142,16 +146,16 @@ public class Game {
         openCard();
     }
 
-    private boolean isMoved(int stackNumber, int stackNumberAnother) {
+    private boolean isMoved(int stackNumber, int stackNumberTarget) {
         boolean result = false;
         Card card = stacks[stackNumber].get(cardNumber);
         Card anotherCard = null;
 
-        if (stacks[stackNumberAnother].size() > 0) {
-            anotherCard = stacks[stackNumberAnother].get(stacks[stackNumberAnother].size() - 1);
+        if (stacks[stackNumberTarget].size() > 0) {
+            anotherCard = stacks[stackNumberTarget].get(stacks[stackNumberTarget].size() - 1);
         }
 
-        if (stackNumberAnother >= 2 && stackNumberAnother <= 5) {
+        if (stackNumberTarget >= 2 && stackNumberTarget <= 5) {
             if (cardNumber == (stacks[stackNumber].size() - 1)) {
                 if (anotherCard == null) {
                     if (card.getRank() == CardParameters.ACE_RANK) {
@@ -170,17 +174,17 @@ public class Game {
                 }
 
                 if (result) {
-                    card.setX(GameParameters.X_SHIFT * (stackNumberAnother + 1) + GameParameters.X_START);
+                    card.setX(GameParameters.X_SHIFT * (stackNumberTarget + 1) + GameParameters.X_START);
                     card.setY(GameParameters.Y_TOP_ROW_START);
-                    stacks[stackNumberAnother].add(card);
+                    stacks[stackNumberTarget].add(card);
                     stacks[stackNumber].remove(cardNumber);
                     checkEndGame();
                 }
             }
         }
 
-        if (stackNumberAnother >= 6 && stackNumberAnother <= 12) {
-            int x = GameParameters.X_START + (stackNumberAnother - 6) * GameParameters.X_SHIFT;
+        if (stackNumberTarget >= 6 && stackNumberTarget < GameParameters.STACK_NUMBER) {
+            int x = GameParameters.X_START + (stackNumberTarget - 6) * GameParameters.X_SHIFT;
             int y = GameParameters.Y_BOTTOM_START;
 
             if (anotherCard == null) {
@@ -206,7 +210,7 @@ public class Game {
                     card = stacks[stackNumber].get(i);
                     card.setX(x);
                     card.setY(y);
-                    stacks[stackNumberAnother].add(card);
+                    stacks[stackNumberTarget].add(card);
                     y += GameParameters.CARD_DISTANT;
                 }
                 for (int i = stacks[stackNumber].size() - 1; i >= cardNumber; i--) {
@@ -254,7 +258,7 @@ public class Game {
                 oldX = card.getX();
                 oldY = card.getY();
             }
-        } else if (stackNumber >= 6 && stackNumber <= 12) {
+        } else if (stackNumber >= 6 && stackNumber < GameParameters.STACK_NUMBER) {
             if (stacks[stackNumber].size() > 0) {
                 int lastCardNumber = stacks[stackNumber].size() - 1;
                 Card card = stacks[stackNumber].get(lastCardNumber);
@@ -297,7 +301,7 @@ public class Game {
     }
 
     private void openCard() {
-        for (int stackIndex = 6; stackIndex <= 12; stackIndex++) {
+        for (int stackIndex = 6; stackIndex < GameParameters.STACK_NUMBER; stackIndex++) {
             if (stacks[stackIndex].size() > 0) {
                 int lastCardNumber = stacks[stackIndex].size() - 1;
                 Card card = stacks[stackIndex].get(lastCardNumber);
@@ -336,7 +340,7 @@ public class Game {
     }
 
     public void start() {
-        for (int stackIndex = 0; stackIndex < 13; stackIndex++) {
+        for (int stackIndex = 0; stackIndex < GameParameters.STACK_NUMBER; stackIndex++) {
             stacks[stackIndex].clear();
         }
         loadCardImagesToZeroStack();
@@ -374,7 +378,7 @@ public class Game {
             }
         }
 
-        for (int stackIndex = 6; stackIndex < 13; stackIndex++) {
+        for (int stackIndex = 6; stackIndex < GameParameters.STACK_NUMBER; stackIndex++) {
             if (stacks[stackIndex].size() > 0) {
                 for (int j = 0; j < stacks[stackIndex].size(); j++) {
                     if (stacks[stackIndex].get(j).isSelected()) {
@@ -396,18 +400,14 @@ public class Game {
 
     private void distribution() {
         int x = GameParameters.X_START;
-        for (int i = 6; i < 13; i++) {
-            for (int j = 6; j <= i; j++) {
+        for (int stackIndex = 6; stackIndex < GameParameters.STACK_NUMBER; stackIndex++) {
+            for (int j = 6; j <= stackIndex; j++) {
                 int randomCardNumber = (int) (Math.random() * stacks[0].size());
                 Card card = stacks[0].get(randomCardNumber);
-                if (j < i) {
-                    card.setShirt(true);
-                } else {
-                    card.setShirt(false);
-                }
+                card.setShirt(j < stackIndex);
                 card.setX(x);
-                card.setY(GameParameters.Y_BOTTOM_START + stacks[i].size() * GameParameters.CARD_DISTANT);
-                stacks[i].add(card);
+                card.setY(GameParameters.Y_BOTTOM_START + stacks[stackIndex].size() * GameParameters.CARD_DISTANT);
+                stacks[stackIndex].add(card);
                 stacks[0].remove(randomCardNumber);
             }
             x += GameParameters.X_SHIFT;
