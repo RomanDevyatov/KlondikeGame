@@ -1,42 +1,43 @@
 package com.april;
 
+import com.april.parameters.CardParameters;
+import com.april.parameters.GameParameters;
+
 import javax.imageio.ImageIO;
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.Timer;
+import java.awt.Image;
+import java.awt.Graphics;
 import java.io.File;
 
 public class Game {
-    public Image rubashkaImage;
-    private Stopka[] stopkas;
-    private boolean firstVidacha;
-    public boolean endGame;
+    public Image shirtImage;
+    private Stack[] stacks;
+    private boolean isFirstCardsIssue;
+    public boolean isEndGame;
 
-    private int nomStopki;
-    private int nomKarti;
-    private int dx, dy;
+    private int stackNumber;
+    private int cardNumber;
+    private int dX, dY;
     private int oldX, oldY;
-    private Timer tmEndGame;
-
-    private static final String KARTA_IMAGES_FOLDER_PATH = "./koloda";
-    private static final String PATH_TO_KARTA_K0 = "./koloda/k0.png";
+    private Timer timerEndGame;
 
     public Game() {
         try {
-            rubashkaImage = ImageIO.read(new File(PATH_TO_KARTA_K0));
+            shirtImage = ImageIO.read(new File(GameParameters.PATH_TO_CARD_K0));
         } catch (Exception e) {
-            System.out.println("Can't open PATH_TO_KARTA_K0:" + e.getMessage());
+            System.out.println("Couldn't open PATH_TO_KARTA_K0:" + e.getMessage());
         }
-        stopkas = new Stopka[13];
+        stacks = new Stack[GameParameters.STACK_NUMBER];
 
-        for (int i = 0; i < 13; i++) {
-            stopkas[i] = new Stopka();
+        for (int i = 0; i < GameParameters.STACK_NUMBER; i++) {
+            stacks[i] = new Stack();
         }
-        // в конце игры эффект
-        tmEndGame = new Timer(100, e -> {
-            for(int i = 2; i <= 5; i++) {
-                Karta karta = stopkas[i].get(0);
-                stopkas[i].add(karta);
-                stopkas[i].remove(0);
+
+        timerEndGame = new Timer(GameParameters.ENDGAME_TIMER_DELAY, e -> {
+            for(int stackIndex = 2; stackIndex <= 5; stackIndex++) {
+                Card card = stacks[stackIndex].get(0);
+                stacks[stackIndex].add(card);
+                stacks[stackIndex].remove(0);
             }
         });
 
@@ -44,381 +45,372 @@ public class Game {
     }
 
     public void mouseDragged(int mX, int mY) {
-        if (nomStopki >= 0) {
-            Karta karta = stopkas[nomStopki].get(nomKarti);
-            karta.setX(mX - dx);
-            karta.setY(mY - dy);
+        if (stackNumber >= 0) {
+            Card card = stacks[stackNumber].get(cardNumber);
+            card.setX(mX - dX);
+            card.setY(mY - dY);
 
-            if (karta.getX() < 0) {
-                karta.setX(0);
+            if (card.getX() < 0) {
+                card.setX(0);
             }
-            if (karta.getX() > 720) {
-                karta.setX(720);
+            if (card.getX() > 720) {
+                card.setX(720);
             }
-            if (karta.getY() < 0) {
-                karta.setY(0);
+            if (card.getY() < 0) {
+                card.setY(0);
             }
-            if (karta.getY() > 650) {
-                karta.setY(650);
+            if (card.getY() > 650) {
+                card.setY(650);
             }
 
-            int y = 20;
-            for (int i = nomKarti + 1; i < stopkas[nomStopki].size(); i++) {
-                stopkas[nomStopki].get(i).setX(karta.getX());
-                stopkas[nomStopki].get(i).setY(karta.getY() + y);
-                y += 20;
+            for (int i = cardNumber + 1; i < stacks[stackNumber].size(); i++) {
+                stacks[stackNumber].get(i).setX(card.getX());
+                stacks[stackNumber].get(i).setY(card.getY() + GameParameters.CARD_DISTANT * (i + 1));
             }
         }
     }
 
     public void mousePressed(int mX, int mY) {
-        int number = getNomKolodaPress(mX, mY);
-        setSelected(number, mX, mY);
+        int number = getStackNumberPressed(mX, mY);
+        setSelectedCardNumber(number, mX, mY);
     }
 
     public void mouseReleased(int mX, int mY) {
-        int nom = getNomKolodaPress(mX, mY);
+        int deckNumberPressed = getStackNumberPressed(mX, mY);
 
-        if (nomStopki != -1) {
-            stopkas[nomStopki].get(nomKarti).setSelected(false);
-            if (nom == -1 || !testPerenos(nomStopki, nom)) {
-                int y = 0;
-                for (int i = nomKarti; i < stopkas[nomStopki].size(); i++) {
-                    Karta karta = stopkas[nomStopki].get(i);
-                    karta.setX(oldX);
-                    karta.setY(oldY);
-                    y += 20;
+        if (stackNumber != -1) {
+            stacks[stackNumber].get(cardNumber).setSelected(false);
+            if (deckNumberPressed == -1 || !isMoved(stackNumber, deckNumberPressed)) {
+                for (int i = cardNumber; i < stacks[stackNumber].size(); i++) {
+                    Card card = stacks[stackNumber].get(i);
+                    card.setX(oldX);
+                    card.setY(oldY);
                 }
             }
-            nomStopki = -1;
-            nomKarti = -1;
-            openKarta();
+            stackNumber = -1;
+            cardNumber = -1;
+            openCard();
         } else {
-            if (nom == 0) {
-                vidacha();
+            if (deckNumberPressed == 0) {
+                issuance();
             }
         }
 
-
     }
 
-    public void mouseDoublePressed(int mX, int mY) {
-        int number = getNomKolodaPress(mX, mY);
-        if (number == 1 || (number >= 6 && number <= 12)) {
-            if (stopkas[number].size() > 0) {
-                int lastCardNumber = stopkas[number].size() - 1;
-                Karta lastCard = stopkas[number].get(lastCardNumber);
-                if (mY >=lastCard.getY() && mY <= lastCard.getY() + 97) {
+    public void mouseDoublePressed(int xMouse, int yMouse) {
+        int stackNumber = getStackNumberPressed(xMouse, yMouse);
+        if (stackNumber == 1 || (stackNumber >= 6 && stackNumber <= 12)) {
+            if (stacks[stackNumber].size() > 0) {
+                int lastCardNumber = stacks[stackNumber].size() - 1;
+                Card lastCard = stacks[stackNumber].get(lastCardNumber);
+                if (yMouse >=lastCard.getY() && yMouse <= lastCard.getY() + GameParameters.CARD_HEIGHT) {
                     for (int i = 2; i < 5; i++) {
-                        int res = -1;
-                        if (stopkas[i].size() == 0) {
-                            if (lastCard.getType() == 12) { // если туз
-                                res = i;
+                        int result = -1;
+                        if (stacks[i].size() == 0) {
+                            if (lastCard.getRank() == CardParameters.ACE_RANK) {
+                                result = i;
                             }
                         } else {
-                            int homeLastCardNumber = stopkas[i].size() - 1;
-                            Karta homeLastCard = stopkas[i].get(homeLastCardNumber);
-                            if (homeLastCard.getType() == 12
-                                    && homeLastCard.getMast() == lastCard.getMast()
-                                    && lastCard.getType() == 0) {
-                                res = i;
-                            } else if (homeLastCard.getType() >= 0
-                                        && homeLastCard.getType() < 11
-                                        && homeLastCard.getMast() == lastCard.getMast()) {
-                                if (homeLastCard.getType() + 1 == lastCard.getType()) {
-                                    res = i;
+                            int homeLastCardNumber = stacks[i].size() - 1;
+                            Card homeLastCard = stacks[i].get(homeLastCardNumber);
+                            if (homeLastCard.getRank() == 12
+                                    && homeLastCard.getSuit() == lastCard.getSuit()
+                                    && lastCard.getRank() == 0) {
+                                result = i;
+                            } else if (homeLastCard.getRank() >= CardParameters.TWO_RANK
+                                        && homeLastCard.getRank() < CardParameters.KING_RANK
+                                        && homeLastCard.getSuit() == lastCard.getSuit()) {
+                                if (homeLastCard.getRank() + 1 == lastCard.getRank()) {
+                                    result = i;
                                 }
                             }
                         }
 
-                        if (res >=0) {
-                            lastCard.setX(110 * (res + 1) + 30);
-                            lastCard.setY(15);
-                            stopkas[res].add(lastCard);
-                            stopkas[number].remove(lastCardNumber);
-                            testEndGame();
+                        if (result >= 0) {
+                            lastCard.setX(GameParameters.X_SHIFT * (result + 1) + GameParameters.X_START);
+                            lastCard.setY(GameParameters.Y_TOP_ROW_START);
+                            stacks[result].add(lastCard);
+                            stacks[stackNumber].remove(lastCardNumber);
+                            checkEndGame();
                             break;
                         }
                     }
                 }
             }
         }
-        openKarta();
+        openCard();
     }
 
-    // number - стопка из которой переносят
-    // numberAnother - стопка в которую переносят
-    private boolean testPerenos(int number, int numberAnother) {
-        boolean res = false;
-        Karta karta = stopkas[number].get(nomKarti);
-        Karta anotherKarta = null;
-        if (stopkas[numberAnother].size() > 0) {
-            anotherKarta = stopkas[numberAnother].get(stopkas[numberAnother].size() - 1);
+    private boolean isMoved(int stackNumber, int stackNumberAnother) {
+        boolean result = false;
+        Card card = stacks[stackNumber].get(cardNumber);
+        Card anotherCard = null;
+
+        if (stacks[stackNumberAnother].size() > 0) {
+            anotherCard = stacks[stackNumberAnother].get(stacks[stackNumberAnother].size() - 1);
         }
-        if (numberAnother >= 2 && numberAnother <= 5) {
-            if (nomKarti == (stopkas[number].size() - 1)) {
-                if (anotherKarta == null) {
-                    if (karta.getType() == 12) {
-                        res = true;
+
+        if (stackNumberAnother >= 2 && stackNumberAnother <= 5) {
+            if (cardNumber == (stacks[stackNumber].size() - 1)) {
+                if (anotherCard == null) {
+                    if (card.getRank() == CardParameters.ACE_RANK) {
+                        result = true;
                     }
-                } else if (anotherKarta.getType() == 12
-                                && karta.getMast() == anotherKarta.getMast()
-                                && karta.getType() == 0) {
-                    res = true;
-                } else if (anotherKarta.getType() >= 0
-                        && karta.getMast() == anotherKarta.getMast()
-                        && anotherKarta.getType() < 11) {
-                    if (karta.getType() == anotherKarta.getType() + 1) {
-                        res = true;
+                } else if (anotherCard.getRank() == CardParameters.ACE_RANK
+                                && card.getSuit() == anotherCard.getSuit()
+                                && card.getRank() == 0) {
+                    result = true;
+                } else if (anotherCard.getRank() >= 0
+                        && card.getSuit() == anotherCard.getSuit()
+                        && anotherCard.getRank() < CardParameters.KING_RANK) {
+                    if (card.getRank() == anotherCard.getRank() + 1) {
+                        result = true;
                     }
                 }
 
-                if (res) {
-                    karta.setX(110 * (numberAnother + 1) + 30);
-                    karta.setY(15);
-                    stopkas[numberAnother].add(karta);
-                    stopkas[number].remove(nomKarti);
-                    testEndGame();
+                if (result) {
+                    card.setX(GameParameters.X_SHIFT * (stackNumberAnother + 1) + GameParameters.X_START);
+                    card.setY(GameParameters.Y_TOP_ROW_START);
+                    stacks[stackNumberAnother].add(card);
+                    stacks[stackNumber].remove(cardNumber);
+                    checkEndGame();
                 }
             }
         }
 
-        if (numberAnother >= 6 && numberAnother <= 12) {
-            int x = 30 + (numberAnother - 6) * 110;
-            int y = 130;
+        if (stackNumberAnother >= 6 && stackNumberAnother <= 12) {
+            int x = GameParameters.X_START + (stackNumberAnother - 6) * GameParameters.X_SHIFT;
+            int y = GameParameters.Y_BOTTOM_START;
 
-            if (anotherKarta == null) {
-                if (karta.getType() == 11) { // короля можно перенести в пустую стопку
-                    res = true;
+            if (anotherCard == null) {
+                if (card.getRank() == CardParameters.KING_RANK) {
+                    result = true;
                 }
             } else {
-                if (!anotherKarta.isRubashkaType()) {
-                    if (anotherKarta.getType() != 12) {
-                        if (karta.getType() + 1 == anotherKarta.getType()
-                                || (anotherKarta.getType() == 0 && karta.getType() == 12)) {
-                            if (anotherKarta.isRed() != karta.isRed()) {
-                                y = anotherKarta.getY() + 20;
-                                res = true;
+                if (!anotherCard.isShirt()) {
+                    if (anotherCard.getRank() != CardParameters.ACE_RANK) {
+                        if (card.getRank() + 1 == anotherCard.getRank()
+                                || (anotherCard.getRank() == CardParameters.TWO_RANK && card.getRank() == CardParameters.ACE_RANK)) {
+                            if (anotherCard.isRed() != card.isRed()) {
+                                y = anotherCard.getY() + GameParameters.CARD_DISTANT;
+                                result = true;
                             }
                         }
                     }
                 }
             }
 
-            if (res) {
-                for (int i = nomKarti; i < stopkas[number].size(); i++) {
-                    Karta karta_ = stopkas[number].get(i);
-                    karta_.setX(x);
-                    karta_.setY(y);
-                    stopkas[numberAnother].add(karta_);
-                    y += 20;
+            if (result) {
+                for (int i = cardNumber; i < stacks[stackNumber].size(); i++) {
+                    card = stacks[stackNumber].get(i);
+                    card.setX(x);
+                    card.setY(y);
+                    stacks[stackNumberAnother].add(card);
+                    y += GameParameters.CARD_DISTANT;
                 }
-                for (int i = stopkas[number].size() - 1; i >= nomKarti; i--) {
-                    stopkas[number].remove(i);
-                }
-            }
-        }
-        return res;
-    }
-
-    private int getNomKolodaPress(int mX, int mY) {
-        int nom = -1;
-
-        if (mY >= 15 && mY <= 15 + 97) { // курсор в зоне верхних стопок
-            if (mX >= 30 && mX <= 30 + 72) { nom = 0; }
-            if (mX >= 140 && mX <= 140 + 72) { nom = 1; }
-            if (mX >= 360 && mX <= 360 + 72) { nom = 2; }
-            if (mX >= 470 && mX <= 470 + 72) { nom = 3; }
-            if (mX >= 580 && mX <= 580 + 72) { nom = 4; }
-            if (mX >= 690 && mX <= 690 + 72) { nom = 5; }
-        } else if (mY >= 130 && mY <= 700) { // курсор в зоне нижних стопок
-            if (mX >= 30 && mX <= 110 * 7) {
-                if (((mX - 30) % 110) <= 72) {
-                    nom = (mX - 30) / 110;
-                    nom += 6;
+                for (int i = stacks[stackNumber].size() - 1; i >= cardNumber; i--) {
+                    stacks[stackNumber].remove(i);
                 }
             }
         }
 
-        return nom;
+        return result;
     }
 
-    private void setSelected(int number, int mX, int mY) {
-        if (number >= 1 && number <= 5) {
-            if (stopkas[number].size() > 0) {
-                int lastCardNumber = stopkas[number].size() - 1;
-                Karta karta = stopkas[number].get(lastCardNumber);
-                karta.setSelected(true);
-                nomKarti = lastCardNumber;
-                nomStopki = number;
-                dx = mX - karta.getX();
-                dy = mY - karta.getY();
+    private int getStackNumberPressed(int xMouse, int yMouse) {
+        int stackNumberPressed = -1;
 
-                oldX = karta.getX();
-                oldY = karta.getY();
+        if (yMouse >= GameParameters.Y_TOP_ROW_START && yMouse <= GameParameters.Y_TOP_ROW_START + GameParameters.CARD_HEIGHT) {
+            if (xMouse >= GameParameters.X_START && xMouse <= GameParameters.X_START + GameParameters.CARD_WIDTH) { stackNumberPressed = 0; }
+            if (xMouse >= 140 && xMouse <= 140 + GameParameters.CARD_WIDTH) { stackNumberPressed = 1; }
+            if (xMouse >= 360 && xMouse <= 360 + GameParameters.CARD_WIDTH) { stackNumberPressed = 2; }
+            if (xMouse >= 470 && xMouse <= 470 + GameParameters.CARD_WIDTH) { stackNumberPressed = 3; }
+            if (xMouse >= 580 && xMouse <= 580 + GameParameters.CARD_WIDTH) { stackNumberPressed = 4; }
+            if (xMouse >= 690 && xMouse <= 690 + GameParameters.CARD_WIDTH) { stackNumberPressed = 5; }
+        } else if (yMouse >= GameParameters.Y_BOTTOM_START && yMouse <= GameParameters.FRAME_HEIGHT) {
+            if (xMouse >= GameParameters.X_START && xMouse <= GameParameters.X_SHIFT * 7) {
+                if (((xMouse - GameParameters.X_START) % GameParameters.X_SHIFT) <= GameParameters.CARD_WIDTH) {
+                    stackNumberPressed = (xMouse - GameParameters.X_START) / GameParameters.X_SHIFT;
+                    stackNumberPressed += 6;
+                }
             }
-        } else if (number >= 6 && number <= 12) {
-            if (stopkas[number].size() > 0) {
-                int lastCardNumber = stopkas[number].size() - 1;
-                Karta karta = stopkas[number].get(lastCardNumber);
+        }
+
+        return stackNumberPressed;
+    }
+
+    private void setSelectedCardNumber(int stackNumber, int mX, int mY) {
+        if (stackNumber >= 1 && stackNumber <= 5) {
+            if (stacks[stackNumber].size() > 0) {
+                int lastCardNumber = stacks[stackNumber].size() - 1;
+                Card card = stacks[stackNumber].get(lastCardNumber);
+                card.setSelected(true);
+                cardNumber = lastCardNumber;
+                this.stackNumber = stackNumber;
+                dX = mX - card.getX();
+                dY = mY - card.getY();
+
+                oldX = card.getX();
+                oldY = card.getY();
+            }
+        } else if (stackNumber >= 6 && stackNumber <= 12) {
+            if (stacks[stackNumber].size() > 0) {
+                int lastCardNumber = stacks[stackNumber].size() - 1;
+                Card card = stacks[stackNumber].get(lastCardNumber);
                 int selectedCardNumber = -1;
-                if (mY >= karta.getY() && mY <= karta.getY() + 97) {
+                if (mY >= card.getY() && mY <= card.getY() + GameParameters.CARD_HEIGHT) {
                     selectedCardNumber = lastCardNumber;
-                } else if (mY < karta.getY()) {
-                    selectedCardNumber = (mY - 130) / 20;
-                    if (stopkas[number].get(selectedCardNumber).isRubashkaType()) {
+                } else if (mY < card.getY()) {
+                    selectedCardNumber = (mY - GameParameters.Y_BOTTOM_START) / GameParameters.CARD_DISTANT;
+                    if (stacks[stackNumber].get(selectedCardNumber).isShirt()) {
                         selectedCardNumber = -1;
                     }
                 }
 
                 if (selectedCardNumber != -1) {
-                    Karta selectedKarta = stopkas[number].get(selectedCardNumber);
-                    if (!selectedKarta.isRubashkaType()) {
-                        selectedKarta.setSelected(true);
+                    Card selectedCard = stacks[stackNumber].get(selectedCardNumber);
+                    if (!selectedCard.isShirt()) {
+                        selectedCard.setSelected(true);
                     }
-                    nomKarti = selectedCardNumber;
-                    nomStopki = number;
-                    dx = mX - selectedKarta.getX();
-                    dy = mY - selectedKarta.getY();
+                    cardNumber = selectedCardNumber;
+                    this.stackNumber = stackNumber;
+                    dX = mX - selectedCard.getX();
+                    dY = mY - selectedCard.getY();
 
-                    oldX = selectedKarta.getX();
-                    oldY = selectedKarta.getY();
+                    oldX = selectedCard.getX();
+                    oldY = selectedCard.getY();
                 }
             }
         }
 
     }
 
-    private void testEndGame() { // домашние стопки
-        if (stopkas[2].size()==13
-            && stopkas[3].size()==13
-            && stopkas[4].size()==13
-            && stopkas[5].size()==13) {
-            endGame = true;
-            tmEndGame.start();
+    private void checkEndGame() {
+        if (stacks[2].size() == GameParameters.STACK_NUMBER
+            && stacks[3].size() == GameParameters.STACK_NUMBER
+            && stacks[4].size() == GameParameters.STACK_NUMBER
+            && stacks[5].size() == GameParameters.STACK_NUMBER) {
+            isEndGame = true;
+            timerEndGame.start();
         }
     }
 
-    private void openKarta() {
-        for (int i = 6; i <= 12; i++) {
-            if (stopkas[i].size() > 0) {
-                int lastCardNumber = stopkas[i].size() - 1;
-                Karta karta = stopkas[i].get(lastCardNumber);
-                if (karta.isRubashkaType()) {
-                    karta.setRubashkaType(false);
+    private void openCard() {
+        for (int stackIndex = 6; stackIndex <= 12; stackIndex++) {
+            if (stacks[stackIndex].size() > 0) {
+                int lastCardNumber = stacks[stackIndex].size() - 1;
+                Card card = stacks[stackIndex].get(lastCardNumber);
+                if (card.isShirt()) {
+                    card.setShirt(false);
                 }
             }
         }
     }
 
-    private void vidacha() {
-        if (stopkas[0].size() > 0) {
-            int nom;
+    private void issuance() {
+        if (stacks[0].size() > 0) {
+            int cardNumber;
 
-            if (firstVidacha) {
-                nom = (int) (Math.random() * stopkas[0].size());
+            if (isFirstCardsIssue) {
+                cardNumber = (int) (Math.random() * stacks[0].size());
             } else {
-                nom = stopkas[0].size() - 1;
+                cardNumber = stacks[0].size() - 1;
             }
-            Karta karta = stopkas[0].get(nom);
-            karta.setRubashkaType(false);
-            karta.increaseOn(110);
-            stopkas[1].add(karta);
-            stopkas[0].remove(nom);
+            Card card = stacks[0].get(cardNumber);
+            card.setShirt(false);
+            card.increaseOn(GameParameters.X_SHIFT);
+            stacks[1].add(card);
+            stacks[0].remove(cardNumber);
         } else { // no cards
-            int lastKartaNom = stopkas[1].size() - 1;
-            for (int i = lastKartaNom; i >= 0; i--) {
-                Karta karta = stopkas[1].get(i);
-                karta.setRubashkaType(true);
-                karta.increaseOn(-110);
-                stopkas[0].add(karta);
+            int lastCardNumber = stacks[1].size() - 1;
+            for (int i = lastCardNumber; i >= 0; i--) {
+                Card card = stacks[1].get(i);
+                card.setShirt(true);
+                card.increaseOn(-GameParameters.X_SHIFT);
+                stacks[0].add(card);
             }
-            stopkas[1].clear();
-            firstVidacha = false;
+            stacks[1].clear();
+            isFirstCardsIssue = false;
         }
     }
 
     public void start() {
-        for (int i = 0; i < 13; i++) {
-            stopkas[i].clear();
+        for (int stackIndex = 0; stackIndex < 13; stackIndex++) {
+            stacks[stackIndex].clear();
         }
-        load();
-        razdacha();
-        this.endGame = false;
-        this.firstVidacha = true;
-        this.nomStopki = -1;
-        this.nomKarti = -1;
+        loadCardImagesToZeroStack();
+        distribution();
+        this.isEndGame = false;
+        this.isFirstCardsIssue = true;
+        this.stackNumber = -1;
+        this.cardNumber = -1;
     }
 
-    private void load() { // загружает изображения колоды
-        for (int i = 1; i <= 52; i++) {
-            stopkas[0].add(new Karta(KARTA_IMAGES_FOLDER_PATH + "/" + "k" + i + ".png", rubashkaImage, i));
+    private void loadCardImagesToZeroStack() {
+        for (int cardIndex = 1; cardIndex <= 52; cardIndex++) {
+            stacks[0].add(new Card(GameParameters.PATH_TO_CARD_IMAGES_FOLDER + "/k" + cardIndex + ".png", shirtImage, cardIndex));
         }
-
     }
 
-    public void drawKoloda(Graphics gr) {
-        // левая верхняя
-        if (stopkas[0].size() > 0) {
-            stopkas[0].get(stopkas[0].size() - 1).draw(gr);
-        }
-        // вторая левая верхняя стопка
-        if (stopkas[1].size() > 1) {
-            stopkas[1].get(stopkas[1].size() - 2).draw(gr);
-            stopkas[1].get(stopkas[1].size() - 1).draw(gr);
-        } else if (stopkas[1].size() == 1) {
-            stopkas[1].get(stopkas[1].size() - 1).draw(gr);
+    public void drawStacks(Graphics gr) {
+        if (stacks[0].size() > 0) {
+            stacks[0].get(stacks[0].size() - 1).draw(gr);
         }
 
-        // 4 стопки домашние
+        if (stacks[1].size() > 1) {
+            stacks[1].get(stacks[1].size() - 2).draw(gr);
+            stacks[1].get(stacks[1].size() - 1).draw(gr);
+        } else if (stacks[1].size() == 1) {
+            stacks[1].get(stacks[1].size() - 1).draw(gr);
+        }
+
         for (int i = 2; i <= 5; i++) {
-            if (stopkas[i].size() > 1) {
-                stopkas[i].get(stopkas[i].size() - 2).draw(gr);
-                stopkas[i].get(stopkas[i].size() - 1).draw(gr);
-            } else if (stopkas[i].size() == 1) {
-                stopkas[i].get(stopkas[i].size() - 1).draw(gr);
+            if (stacks[i].size() > 1) {
+                stacks[i].get(stacks[i].size() - 2).draw(gr);
+                stacks[i].get(stacks[i].size() - 1).draw(gr);
+            } else if (stacks[i].size() == 1) {
+                stacks[i].get(stacks[i].size() - 1).draw(gr);
             }
         }
 
-        // нижние семь стопок
-        for (int i = 6; i < 13; i++) {
-            if (stopkas[i].size() > 0) {
-                for (int j = 0; j < stopkas[i].size(); j++) {
-                    if (stopkas[i].get(j).isSelected()) {
+        for (int stackIndex = 6; stackIndex < 13; stackIndex++) {
+            if (stacks[stackIndex].size() > 0) {
+                for (int j = 0; j < stacks[stackIndex].size(); j++) {
+                    if (stacks[stackIndex].get(j).isSelected()) {
                         break;
                     }
-                    stopkas[i].get(j).draw(gr);
+                    stacks[stackIndex].get(j).draw(gr);
                 }
             }
         }
 
-        // переносим карты мышью
-        if (nomStopki != -1) {
-            for (int i = nomKarti; i < stopkas[nomStopki].size(); i++) {
-                stopkas[nomStopki].get(i).draw(gr);
+        if (stackNumber != -1) {
+            for (int i = cardNumber; i < stacks[stackNumber].size(); i++) {
+                stacks[stackNumber].get(i).draw(gr);
             }
         }
 
 
     }
 
-    private void razdacha() {
-        int x = 30;
+    private void distribution() {
+        int x = GameParameters.X_START;
         for (int i = 6; i < 13; i++) {
             for (int j = 6; j <= i; j++) {
-                int randomNomKart = (int) (Math.random() * stopkas[0].size());
-                Karta karta = stopkas[0].get(randomNomKart);
+                int randomCardNumber = (int) (Math.random() * stacks[0].size());
+                Card card = stacks[0].get(randomCardNumber);
                 if (j < i) {
-                    karta.setRubashkaType(true);
+                    card.setShirt(true);
                 } else {
-                    karta.setRubashkaType(false);
+                    card.setShirt(false);
                 }
-                karta.setX(x);
-                karta.setY(130 + stopkas[i].size() * 20);
-                stopkas[i].add(karta);
-                stopkas[0].remove(randomNomKart);
+                card.setX(x);
+                card.setY(GameParameters.Y_BOTTOM_START + stacks[i].size() * GameParameters.CARD_DISTANT);
+                stacks[i].add(card);
+                stacks[0].remove(randomCardNumber);
             }
-            x += 110;
+            x += GameParameters.X_SHIFT;
         }
     }
 }

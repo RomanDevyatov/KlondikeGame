@@ -1,8 +1,9 @@
 package com.april;
 
-public class Kosinka {
+public class Klondike {
 
     public static void main(String[] args) {
-        new Okno();
+        new GameFrame();
     }
+
 }
