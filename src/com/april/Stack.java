@@ -3,7 +3,7 @@ package com.april;
 import java.util.ArrayList;
 
 public class Stack {
-    private ArrayList<Card> cardArrayList;
+    private final ArrayList<Card> cardArrayList;
 
     public Stack() {
         cardArrayList = new ArrayList<>();

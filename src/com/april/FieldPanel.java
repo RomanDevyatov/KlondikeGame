@@ -94,7 +94,7 @@ public class FieldPanel extends JPanel {
         newGameButton.setForeground(Color.BLUE);
         newGameButton.setFont(new Font("serif", Font.PLAIN, 20));
         newGameButton.setBounds(820, 50, 150, 50);
-        newGameButton.addActionListener(e -> game.start());
+        newGameButton.addActionListener(e -> game.startGame());
         add(newGameButton);
 
         JButton endGameButton = new JButton();

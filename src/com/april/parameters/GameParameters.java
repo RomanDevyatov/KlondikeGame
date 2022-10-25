@@ -21,4 +21,5 @@ public class GameParameters {
     public static final byte LEFT_BUTTON_CLICKED = 1;
     public static final byte DRAW_TIMER_DELAY = 20;
     public static final byte ENDGAME_TIMER_DELAY = 100;
+    public static final byte CARD_AMOUNT = 52;
 }
